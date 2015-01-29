@@ -1,0 +1,16 @@
+name = Field fabric canvas view
+description = fabric.js field
+
+
+dependencies[] = jquery_update
+dependencies[] = image
+dependencies[] = entity
+dependencies[] = fabric_canvas_view
+
+
+;scripts[] = ../fabric_canvas_view/js/fabric_canvas_view.js
+
+
+
+core = 7.x
+
