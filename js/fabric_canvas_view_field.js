@@ -1,127 +1,87 @@
-
 jQuery(document).ready(function(){
-
-init = function(id, canvas_profile) {
-	if(canvas_profile){
-		
-		init_fabric();
-		
-		//var canvas = draw_stage(id, canvas_profile),
-			var canvas = new fabric.Canvas(id),
-			delta = canvas_profile.entityDelta,
-			j = Drupal.settings.canvas_view_field_data,
-			t = typeof j[delta],
-			json = 	( t === "object" ) ? j[delta].json : "";
-		
-		if(t === "object"){
-			canvas.loadFromJSON(json, function(){
-				canvas_render();
-			}, function(o, object){
-				//o.clipTo.replace(/width/i, o.width);
-			});
-		} else{ 
-			//window.setTimeout(function(){
-				add_rect(canvas, _get_random_object_options(canvas));
-				canvas.renderAll();
-			//},0);
-		}
-		//canvas.on('object:moving', function(e) {
-			//var activeObject = e.target;
-			//console.log(activeObject.get('left'), activeObject.get('top'));
-		//});
-		return canvas;
-	}
-}	
-
-Drupal.behaviors.fabric_canvas_view_field = {
-	attach: function (context, settings) {
-		// This will only get ran once
-			//context.once(function() {
-			console.log(context);
-		//});
-	}
-}
-
-Drupal.settings.canvas_view = {
-	getActiveCanvas : function(){
-		return  Drupal.settings.canvas_view.canvas ;
-	},
-	current_node : 1,
-	fields : Array(),
-	load_field : function _load(){
-			var g = Drupal.settings.canvas_view.getActiveCanvas();
-				
-			jQuery.ajax({
-			url : "/load_canvas_field_handler/"+Drupal.settings.canvas_view.current_node+'/0',
-			type : "POST",
-			data : {
-				"nid"			:	g.lowerCanvasEl.dataset.entityId,
-			},
-			success : function(d){
-				console.log(d);
-			}
-		});
-} 
-};
-
-	// node form -- export canvas before to canvas field
 	jQuery('.node-form ').submit(function(ev) {
+	//TODO: move to form alter ?
+	// node form -- export canvas before to canvas field
 		ev.preventDefault(); 
 		_save();
 		this.submit();
-		////TODO: multiple instances saving 
 	}); 
-	var  canvas_selector = "canvas.fabric_canvas_view_field";
-	jQuery(canvas_selector).each(function(i, val){
-		// initialize fabric on canvas items from the field
-		var canvas_profile = jQuery(val).data(),		
-			cc = init(val.id, canvas_profile),
-			delta = canvas_profile.entityDelta;
-		// maintain a list ref for the fabric canvas field items  
-		Drupal.settings.canvas_view.fields.push(cc);
-		
-		jQuery(cc.wrapperEl).on("mouseenter click", function activateCanvas(e){
-			canvas = Drupal.settings.canvas_view.canvas  = Drupal.settings.canvas_view.fields[delta];
-			Drupal.settings.canvas_view.fields[delta].activated = true;
-			console.log(delta);
-			
+	add_tools();
+});
+function init(canvas) {
+	init_fabric();
+	
+	var ref = new fabric.Canvas(canvas.id);
+	jQuery('#'+canvas.id)[0].fabric = ref;
+	
+	jQuery(ref.wrapperEl).addClass("activated active")
+		.on("mouseenter click", function activateCanvas(e){
+			jQuery(".canvas-container").removeClass("active");
+			jQuery(ref.wrapperEl).addClass("active");
 		});
 		
-		canvas = Drupal.settings.canvas_view.canvas = Drupal.settings.canvas_view.fields[0];
-	});
-	Drupal.settings.canvas_view.fields[0].activated = true;
-	add_tools();
-	//}
-	_save = function _save(){
-		var g = Drupal.settings.canvas_view.getActiveCanvas(),
-		nid = g.lowerCanvasEl.dataset.entityId,
-		delta = g.lowerCanvasEl.dataset.entityDelta;
-		if(jQuery("form.node-form").length >= 1){
-			Drupal.settings.canvas_view.fields.forEach(function(val, i){
-				if(val.activated){
-					var canvas_export = JSON.stringify(val.toJSON());
-					jQuery('.fabric_canvas_view_field_json[data-delta="'+i+'"]').val(canvas_export);
-				}
-			});
-		} else {
-			jQuery.ajax({
-						url : "/save_canvas_field_handler/"+nid+"/"+delta,
-						type : "POST",
-						data : {
-							"nid"			:	nid,
-							"layout_data"	: 	canvas_export()
-						},
-						success : function(d){
-							jQuery("#save").css("background-color","green");
-							window.setTimeout(function(){
-								jQuery("#save").css("background-color","");
-							},2000);
-							
-							console.log(d);
-							jQuery(".node-form").submit();
-						}
-			});
-		}
-	}	
+	var w = parseInt(canvas.canvas_profile.width),
+		h = parseInt(canvas.canvas_profile.height),
+		s = parseFloat(canvas.canvas_profile.scale);
+	if(typeof(w) === "number" && typeof(h) === "number" ){					
+			ref.setWidth(w * s);
+			ref.setHeight(h * s);
+	}
+	if(typeof canvas.json === "object" || typeof canvas.json === "string" ){
+		ref.loadFromJSON(canvas.json, function(){
+					ref.renderAll();
+					}, function(o, object){
+					//o.clipTo.replace(/width/i, o.width);
+					});
+	} else{ 
+			add_rect(ref, _get_random_object_options(canvas));
+			ref.renderAll();
+	}
+	//return ref;
+}
+//function _init(){
+	//Drupal.settings.fabric_view = Drupal.settings.fabric_view || { 'settings': {}, 'behaviors': {}, 'canvas_instances': {} };
+	//Drupal.settings.canvas_view = {
+		//getActiveCanvas : function(){
+			//if(Drupal.settings.canvas_view._active){
+					//return Drupal.settings.canvas_view._active;
+			//}
+			//if(typeof Drupal.settings.canvas_view_field_data.activated === "boolean" ){
+					//Drupal.settings.canvas_view.active =  Drupal.settings.canvas_view_field_data;
+			//}
+			//jQuery.each(Drupal.settings.canvas_view_field_data, function(i, val){
+				//if( val.activated && val.active != false){
+					//Drupal.settings.canvas_view.active =  val;
+				//}
+			//});
+			//return Drupal.settings.canvas_view.active.ref;
+		
+		//},
+		//current_node : 1,
+		//fields : Array(),
+		//load_field : function _load(){
+				//var g = Drupal.settings.canvas_view.getActiveCanvas();
+					
+				//jQuery.ajax({
+				//url : "/load_canvas_field_handler/"+Drupal.settings.canvas_view.current_node+'/0',
+				//type : "POST",
+				//data : {
+					//"nid"			:	g.lowerCanvasEl.dataset.entityId,
+				//},
+				//success : function(d){
+					//console.log(d);
+				//}
+			//});
+	//} 
+	//};
 	
-});
+//}
+Drupal.behaviors.fabric_canvas_view_field = {
+	attach: function (context, settings) {
+		jQuery("canvas", context).once("fabric_canvas_view_field", function(){
+			jQuery(settings.canvas_view_field_data).each(function(i, val){
+				 init(val);
+			});
+		});
+	}
+}
